@@ -37,13 +37,73 @@ class PlayState extends FlxState
 	var gameGrid:GridWithBorders;
 
 	var currentlySelectedPoint:FlxPoint;
+	var lastSelectedPoint:FlxPoint;
 	var selectedDot:FlxSprite;
+
+	function connectDots(pos:GridCornerIteratorObject, coordX:Int, coordY:Int)
+	{
+		if (pos.x == lastSelectedPoint.x && pos.y == lastSelectedPoint.y)
+		{
+			lastSelectedPoint.x = -3;
+			lastSelectedPoint.y = -3;
+			return;
+		}
+
+		lastSelectedPoint.x = pos.x;
+		lastSelectedPoint.y = pos.y;
+
+		// Move to helper
+		var endXRight = Std.int(padding + dotSpacing / 2) + (pos.x + 1) * dotSpacing;
+		var endYDown = Std.int(padding + dotSpacing / 2) + (pos.y + 1) * dotSpacing;
+		var endXLeft = Std.int(padding + dotSpacing / 2) + (pos.x - 1) * dotSpacing;
+		var endYTop = Std.int(padding + dotSpacing / 2) + (pos.y - 1) * dotSpacing;
+
+		if (currentlySelectedPoint.x < -2 || currentlySelectedPoint.y < -2)
+		{
+			trace('${pos.x} ${pos.y} - not on point');
+			selectedDot.x = coordX - dotRadius;
+			selectedDot.y = coordY - dotRadius;
+			currentlySelectedPoint.x = pos.x;
+			currentlySelectedPoint.y = pos.y;
+			gameGrid.setGridDataByCoords(pos.x, pos.y, GridWithBordersToggleType.topLeftCorner);
+			add(selectedDot);
+		}
+		else
+		{
+			trace('${pos.x} ${pos.y} - on point ${currentlySelectedPoint.x} ${currentlySelectedPoint.y}');
+			remove(selectedDot);
+			if (currentlySelectedPoint.x == pos.x && currentlySelectedPoint.y == pos.y + 1)
+			{
+				gameGrid.setGridDataByCoords(pos.x, pos.y + 1, GridWithBordersToggleType.leftBorder);
+				linesCanvas.drawLine(coordX + 2, coordY + 2, coordX + 2, endYDown + 2, selectedLineStyle);
+			}
+			else if (currentlySelectedPoint.x == pos.x && currentlySelectedPoint.y == pos.y - 1)
+			{
+				gameGrid.setGridDataByCoords(pos.x, pos.y, GridWithBordersToggleType.leftBorder);
+				linesCanvas.drawLine(coordX + 2, coordY + 2, coordX + 2, endYTop + 2, selectedLineStyle);
+			}
+			else if (currentlySelectedPoint.x == pos.x + 1 && currentlySelectedPoint.y == pos.y)
+			{
+				gameGrid.setGridDataByCoords(pos.x, pos.y, GridWithBordersToggleType.topBorder);
+				linesCanvas.drawLine(coordX + 2, coordY + 2, endXRight + 2, coordY + 2, selectedLineStyle);
+			}
+			else if (currentlySelectedPoint.x == pos.x - 1 && currentlySelectedPoint.y == pos.y)
+			{
+				gameGrid.setGridDataByCoords(pos.x - 1, pos.y, GridWithBordersToggleType.topBorder);
+				linesCanvas.drawLine(coordX + 2, coordY + 2, endXLeft + 2, coordY + 2, selectedLineStyle);
+			}
+			currentlySelectedPoint.x = -3;
+			currentlySelectedPoint.y = -3;
+			add(linesCanvas);
+		}
+	}
 
 	override public function create()
 	{
 		super.create();
 
 		currentlySelectedPoint = new FlxPoint(-3, -3);
+		lastSelectedPoint = new FlxPoint(-3, -3);
 		selectedDot = new FlxSprite();
 		selectedDot.makeGraphic(dotRadius * 3, dotRadius * 3, FlxColor.fromRGB(222, 222, 0, 160));
 
@@ -59,8 +119,6 @@ class PlayState extends FlxState
 			var coordY = Std.int(padding + dotSpacing / 2) + pos.y * dotSpacing;
 			var endXRight = Std.int(padding + dotSpacing / 2) + (pos.x + 1) * dotSpacing;
 			var endYDown = Std.int(padding + dotSpacing / 2) + (pos.y + 1) * dotSpacing;
-			var endXLeft = Std.int(padding + dotSpacing / 2) + (pos.x - 1) * dotSpacing;
-			var endYTop = Std.int(padding + dotSpacing / 2) + (pos.y - 1) * dotSpacing;
 
 			var newDot = new FlxSprite();
 			newDot.makeGraphic(dotRadius, dotRadius, FlxColor.WHITE);
@@ -77,48 +135,13 @@ class PlayState extends FlxState
 				newEventDot, //
 				function(s:FlxSprite)
 				{
-					if (currentlySelectedPoint.x < -2 || currentlySelectedPoint.y < -2)
-					{
-						trace('MouseDown ${pos.x} ${pos.y} - not on screen');
-						selectedDot.x = coordX - dotRadius;
-						selectedDot.y = coordY - dotRadius;
-						currentlySelectedPoint.x = pos.x;
-						currentlySelectedPoint.y = pos.y;
-						gameGrid.setGridDataByCoords(pos.x, pos.y, GridWithBordersToggleType.topLeftCorner);
-						add(selectedDot);
-					}
-					else
-					{
-						trace('MouseDown ${pos.x} ${pos.y} - on screen ${currentlySelectedPoint.x} ${currentlySelectedPoint.y}');
-						remove(selectedDot);
-						if (currentlySelectedPoint.x == pos.x && currentlySelectedPoint.y == pos.y + 1)
-						{
-							gameGrid.setGridDataByCoords(pos.x, pos.y + 1, GridWithBordersToggleType.leftBorder);
-							linesCanvas.drawLine(coordX + 2, coordY + 2, coordX + 2, endYDown + 2, selectedLineStyle);
-						}
-						else if (currentlySelectedPoint.x == pos.x && currentlySelectedPoint.y == pos.y - 1)
-						{
-							gameGrid.setGridDataByCoords(pos.x, pos.y, GridWithBordersToggleType.leftBorder);
-							linesCanvas.drawLine(coordX + 2, coordY + 2, coordX + 2, endYTop + 2, selectedLineStyle);
-						}
-						else if (currentlySelectedPoint.x == pos.x + 1 && currentlySelectedPoint.y == pos.y)
-						{
-							gameGrid.setGridDataByCoords(pos.x, pos.y, GridWithBordersToggleType.topBorder);
-							linesCanvas.drawLine(coordX + 2, coordY + 2, endXRight + 2, coordY + 2, selectedLineStyle);
-						}
-						else if (currentlySelectedPoint.x == pos.x - 1 && currentlySelectedPoint.y == pos.y)
-						{
-							gameGrid.setGridDataByCoords(pos.x - 1, pos.y, GridWithBordersToggleType.topBorder);
-							linesCanvas.drawLine(coordX + 2, coordY + 2, endXLeft + 2, coordY + 2, selectedLineStyle);
-						}
-						currentlySelectedPoint.x = -3;
-						currentlySelectedPoint.y = -3;
-						add(linesCanvas);
-					}
+					trace('MouseDown  ${pos.x} ${pos.y}');
+					connectDots(pos, coordX, coordY);
 				}, //
 				function(s:FlxSprite)
 				{
 					trace('MouseUp  ${pos.x} ${pos.y}');
+					connectDots(pos, coordX, coordY);
 				}, //
 				function(s:FlxSprite)
 				{
